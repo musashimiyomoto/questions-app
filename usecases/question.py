@@ -26,7 +26,7 @@ class QuestionUsecase:
 
         questions = await self._question_repository.get_all(session=session)
 
-        logger.info(f"✅ Fetched {len(questions)} questions")
+        logger.info("✅ Fetched %s questions", len(questions))
 
         return questions
 
@@ -41,13 +41,13 @@ class QuestionUsecase:
             The created question.
 
         """
-        logger.info(f"⏲️ Creating question: {text[:50]}...")
+        logger.info("⏲️ Creating question: %s...", text[:50])
 
         question = await self._question_repository.create(
             session=session, data={"text": text}
         )
 
-        logger.info(f"✅ Created question with ID: {question.id}")
+        logger.info("✅ Created question with ID: %s", question.id)
 
         return question
 
@@ -65,17 +65,17 @@ class QuestionUsecase:
             QuestionNotFoundError: If the question is not found.
 
         """
-        logger.info(f"⏲️ Fetching question with ID: {id}")
+        logger.info("⏲️ Fetching question with ID: %s", id)
 
         question = await self._question_repository.get_with_answers(
             session=session, id=id
         )
 
         if not question:
-            logger.error(f"❌ Question with ID {id} not found")
+            logger.error("❌ Question with ID %s not found", id)
             raise QuestionNotFoundError
 
-        logger.info(f"✅ Fetched question with ID: {id}")
+        logger.info("✅ Fetched question with ID: %s", id)
 
         return question
 
@@ -90,12 +90,12 @@ class QuestionUsecase:
             QuestionNotFoundError: If the question is not found.
 
         """
-        logger.info(f"⏲️ Deleting question and answers with ID: {id}")
+        logger.info("⏲️ Deleting question and answers with ID: %s", id)
 
         result = await self._question_repository.delete_by(session=session, id=id)
 
         if not result:
-            logger.error(f"❌Question with ID {id} not found")
+            logger.error("❌Question with ID %s not found", id)
             raise QuestionNotFoundError
 
-        logger.info(f"✅ Deleted question and answers with ID: {id}")
+        logger.info("✅ Deleted question and answers with ID: %s", id)

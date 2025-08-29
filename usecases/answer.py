@@ -34,14 +34,16 @@ class AnswerUsecase:
             AnswerNotFoundError: If the answer is not found.
 
         """
-        logger.info(f"⏲️ Creating answer for question {question_id} by user {user_id}")
+        logger.info(
+            "⏲️ Creating answer for question %s by user %s", question_id, user_id
+        )
 
         question = await self._question_repository.get_by(
             session=session, id=question_id
         )
 
         if not question:
-            logger.error(f"❌ Question with ID {question_id} not found")
+            logger.error("❌ Question with ID %s not found", question_id)
             raise QuestionNotFoundError
 
         answer = await self._answer_repository.create(
@@ -49,7 +51,7 @@ class AnswerUsecase:
             data={"question_id": question_id, "user_id": user_id, "text": text},
         )
 
-        logger.info(f"✅ Created answer with ID: {answer.id}")
+        logger.info("✅ Created answer with ID: %s", answer.id)
 
         return answer
 
@@ -67,15 +69,15 @@ class AnswerUsecase:
             AnswerNotFoundError: If the answer is not found.
 
         """
-        logger.info(f"⏲️ Fetching answer with ID: {id}")
+        logger.info("⏲️ Fetching answer with ID: %s", id)
 
         answer = await self._answer_repository.get_by(session=session, id=id)
 
         if not answer:
-            logger.error(f"❌Answer with ID {id} not found")
+            logger.error("❌Answer with ID %s not found", id)
             raise AnswerNotFoundError
 
-        logger.info(f"✅ Fetched answer with ID: {answer.id}")
+        logger.info("✅ Fetched answer with ID: %s", answer.id)
 
         return answer
 
@@ -90,12 +92,12 @@ class AnswerUsecase:
             AnswerNotFoundError: If the answer is not found.
 
         """
-        logger.info(f"⏲️ Deleting answer with ID: {id}")
+        logger.info("⏲️ Deleting answer with ID: %s", id)
 
         result = await self._answer_repository.delete_by(session=session, id=id)
 
         if not result:
-            logger.error(f"❌ Answer with ID {id} not found")
+            logger.error("❌ Answer with ID %s not found", id)
             raise AnswerNotFoundError
 
-        logger.info(f"✅ Deleted answer with ID: {id}")
+        logger.info("✅ Deleted answer with ID: %s", id)

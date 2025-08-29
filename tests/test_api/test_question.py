@@ -9,6 +9,8 @@ class TestGetAllQuestions(BaseTestCase):
 
     @pytest.mark.asyncio
     async def test_ok(self) -> None:
+        expected_questions_count = 2
+
         question1 = await QuestionFactory.create_async(
             session=self.session, text="What is Python?"
         )
@@ -20,7 +22,7 @@ class TestGetAllQuestions(BaseTestCase):
 
         data = await self.assert_response_ok(response=response)
         assert isinstance(data, list)
-        assert len(data) == 2
+        assert len(data) == expected_questions_count
         assert data[0]["id"] == question1.id
         assert data[0]["text"] == question1.text
         assert data[1]["id"] == question2.id
