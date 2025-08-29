@@ -1,127 +1,79 @@
 import uuid
-from unittest import mock
 
 import pytest
 
-from settings import auth_settings
-from tests.factories import UserFactory
+from tests.factories import AnswerFactory, QuestionFactory
 from tests.test_api.base import BaseTestCase
-from utils.crypto import pwd_context
 
 
-class TestAuthRegister(BaseTestCase):
-    url = "/auth/register"
-
-    def _user_data(self) -> dict:
-        return {
-            "first_name": "John",
-            "last_name": "Doe",
-            "email": f"john.doe-{uuid.uuid4().hex[:8]}@example.com",
-            "password": "secure_password123",
-        }
+class TestCreateAnswer(BaseTestCase):
+    url = "/questions/{id}/answers/"
 
     @pytest.mark.asyncio
     async def test_ok(self) -> None:
-        user_data = self._user_data()
+        question = await QuestionFactory.create_async(
+            session=self.session, text="What is Python?"
+        )
+        user_id = uuid.uuid4()
+        answer_data = {
+            "user_id": str(user_id),
+            "text": "Python is a programming language",
+        }
 
-        response = await self.client.post(url=self.url, json=user_data)
+        response = await self.client.post(
+            url=self.url.format(id=question.id), json=answer_data
+        )
 
         data = await self.assert_response_ok(response=response)
         assert "id" in data
-        assert data["first_name"] == user_data["first_name"]
-        assert data["last_name"] == user_data["last_name"]
-        assert data["email"] == user_data["email"]
-        assert data["is_active"] is False
+        assert data["user_id"] == str(user_id)
+        assert data["text"] == answer_data["text"]
+        assert data["question_id"] == question.id
         assert "created_at" in data
-        assert "hashed_password" not in data
-        assert "password" not in data
 
 
-class TestAuthLogin(BaseTestCase):
-    url = "/auth/login"
-
-    def _user_data(self) -> dict:
-        return {
-            "first_name": "John",
-            "last_name": "Doe",
-            "email": f"john.doe-{uuid.uuid4().hex[:8]}@example.com",
-            "password": "secure_password123",
-        }
+class TestGetAnswerById(BaseTestCase):
+    url = "/answers/{id}"
 
     @pytest.mark.asyncio
     async def test_ok(self) -> None:
-        user_data = self._user_data()
-        await UserFactory.create_async(
+        question = await QuestionFactory.create_async(
+            session=self.session, text="What is Python?"
+        )
+        user_id = uuid.uuid4()
+        answer = await AnswerFactory.create_async(
             session=self.session,
-            email=user_data["email"],
-            hashed_password=pwd_context.hash(user_data["password"]),
+            question_id=question.id,
+            user_id=user_id,
+            text="Python is a programming language",
         )
 
-        response = await self.client.post(
-            url=self.url,
-            json={"email": user_data["email"], "password": user_data["password"]},
-        )
+        response = await self.client.get(url=self.url.format(id=answer.id))
 
         data = await self.assert_response_ok(response=response)
-        assert "access_token" in data
-        assert "token_type" in data
-        assert data["token_type"] == auth_settings.token_type
+        assert data["id"] == answer.id
+        assert data["user_id"] == str(answer.user_id)
+        assert data["text"] == answer.text
+        assert data["question_id"] == answer.question_id
+        assert "created_at" in data
 
 
-class TestAdminAuthSendEmailCode(BaseTestCase):
-    url = "/auth/send/{email}/code"
-
-    def _user_data(self) -> dict:
-        return {
-            "name": "John Doe",
-            "email": f"john.doe-{uuid.uuid4().hex[:8]}@example.com",
-            "password": "secure_password123",
-        }
+class TestDeleteAnswer(BaseTestCase):
+    url = "/answers/{id}"
 
     @pytest.mark.asyncio
     async def test_ok(self) -> None:
-        user_data = self._user_data()
-        await UserFactory.create_async(
+        question = await QuestionFactory.create_async(
+            session=self.session, text="What is Python?"
+        )
+        user_id = uuid.uuid4()
+        answer = await AnswerFactory.create_async(
             session=self.session,
-            email=user_data["email"],
-            hashed_password=pwd_context.hash(user_data["password"]),
-            is_active=False,
+            question_id=question.id,
+            user_id=user_id,
+            text="Python is a programming language",
         )
 
-        response = await self.client.post(
-            url=self.url.format(email=user_data["email"]),
-        )
-
-        await self.assert_response_no_content(response=response)
-
-
-class TestAuthVerifyEmail(BaseTestCase):
-    url = "/auth/verify/{email}/{code}"
-    code = "123456"
-
-    def _user_data(self) -> dict:
-        return {
-            "name": "John Doe",
-            "email": f"john.doe-{uuid.uuid4().hex[:8]}@example.com",
-            "password": "secure_password123",
-        }
-
-    @pytest.mark.asyncio
-    async def test_ok(self) -> None:
-        user_data = self._user_data()
-        await UserFactory.create_async(
-            session=self.session,
-            email=user_data["email"],
-            hashed_password=pwd_context.hash(user_data["password"]),
-            is_active=False,
-        )
-
-        with mock.patch(
-            "usecases.auth.AuthUsecase._generate_code", return_value=self.code
-        ):
-            await self.client.post(url=f"/auth/send/{user_data['email']}/code")
-            response = await self.client.post(
-                url=self.url.format(email=user_data["email"], code=self.code)
-            )
+        response = await self.client.delete(url=self.url.format(id=answer.id))
 
         await self.assert_response_no_content(response=response)
