@@ -78,12 +78,11 @@ poetry run pytest tests/
 
 These tests cover the complete API endpoints, database operations, and business logic validation.
 
-### And coding style tests
-
-Explain what these tests test and why
+### Code style checks
 
 ```
 poetry run ruff check .
+poetry run pyright .
 poetry run black --check .
 poetry run isort --check-only .
 ```
