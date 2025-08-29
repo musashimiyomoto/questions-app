@@ -1,5 +1,5 @@
+from exceptions.answer import AnswerNotFoundError
 from exceptions.base import BaseError
-from exceptions.auth import AuthError, AuthCredentialsError
+from exceptions.question import QuestionNotFoundError
 
-
-__all__ = ["BaseError", "AuthError", "AuthCredentialsError"]
+__all__ = ["BaseError", "QuestionNotFoundError", "AnswerNotFoundError"]

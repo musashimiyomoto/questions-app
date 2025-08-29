@@ -1,81 +1,56 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Annotated
+
+from fastapi import APIRouter, Body, Depends, Path, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
-from app.db.session import get_db
-from app.models.answer import Answer
-from app.models.question import Question
-from app.schemas.answer import AnswerCreate, AnswerResponse
-from app.core.logging import get_logger
+from api.dependencies import answer, db
+from api.schemas import AnswerCreateSchema, AnswerResponseSchema
 
-logger = get_logger(__name__)
-router = APIRouter(tags=["answers"])
+router = APIRouter(tags=["Answers"])
 
 
-@router.post("/questions/{question_id}/answers/", response_model=AnswerResponse, status_code=status.HTTP_201_CREATED)
-async def create_answer(
-    question_id: int,
-    answer: AnswerCreate,
-    db: AsyncSession = Depends(get_db)
-):
-    logger.info(f"Creating answer for question {question_id} by user {answer.user_id}")
-    
-    result = await db.execute(select(Question).where(Question.id == question_id))
-    question = result.scalar_one_or_none()
-    
-    if not question:
-        logger.warning(f"Question with ID {question_id} not found")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Question not found"
+@router.post("/questions/{id}/answers/")
+async def create(
+    id: Annotated[int, Path(description="Question ID")],
+    data: Annotated[
+        AnswerCreateSchema, Body(description="Data for creating an answer")
+    ],
+    session: Annotated[AsyncSession, Depends(dependency=db.get_session)],
+    usecase: Annotated[
+        answer.AnswerUsecase, Depends(dependency=answer.get_answer_usecase)
+    ],
+) -> AnswerResponseSchema:
+    return AnswerResponseSchema.model_validate(
+        await usecase.create(
+            session=session, question_id=id, user_id=data.user_id, text=data.text
         )
-    
-    db_answer = Answer(
-        question_id=question_id,
-        user_id=answer.user_id,
-        text=answer.text
     )
-    db.add(db_answer)
-    await db.commit()
-    await db.refresh(db_answer)
-    
-    logger.info(f"Created answer with ID: {db_answer.id}")
-    return db_answer
 
 
-@router.get("/answers/{answer_id}", response_model=AnswerResponse)
-async def get_answer(answer_id: int, db: AsyncSession = Depends(get_db)):
-    logger.info(f"Fetching answer with ID: {answer_id}")
-    
-    result = await db.execute(select(Answer).where(Answer.id == answer_id))
-    answer = result.scalar_one_or_none()
-    
-    if not answer:
-        logger.warning(f"Answer with ID {answer_id} not found")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Answer not found"
-        )
-    
-    return answer
+@router.get(path="/answers/{id}")
+async def get_by_id(
+    id: Annotated[int, Path(description="Answer ID")],
+    session: Annotated[AsyncSession, Depends(dependency=db.get_session)],
+    usecase: Annotated[
+        answer.AnswerUsecase, Depends(dependency=answer.get_answer_usecase)
+    ],
+) -> AnswerResponseSchema:
+    return AnswerResponseSchema.model_validate(
+        await usecase.get_by_id(session=session, id=id)
+    )
 
 
-@router.delete("/answers/{answer_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_answer(answer_id: int, db: AsyncSession = Depends(get_db)):
-    logger.info(f"Deleting answer with ID: {answer_id}")
-    
-    result = await db.execute(select(Answer).where(Answer.id == answer_id))
-    answer = result.scalar_one_or_none()
-    
-    if not answer:
-        logger.warning(f"Answer with ID {answer_id} not found for deletion")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Answer not found"
-        )
-    
-    await db.delete(answer)
-    await db.commit()
-    
-    logger.info(f"Successfully deleted answer with ID: {answer_id}")
-    return None
+@router.delete(path="/answers/{id}")
+async def delete_by_id(
+    id: Annotated[int, Path(description="Answer ID")],
+    session: Annotated[AsyncSession, Depends(dependency=db.get_session)],
+    usecase: Annotated[
+        answer.AnswerUsecase, Depends(dependency=answer.get_answer_usecase)
+    ],
+) -> JSONResponse:
+    await usecase.delete_by_id(session=session, id=id)
+    return JSONResponse(
+        content={"message": "Answer deleted successfully"},
+        status_code=status.HTTP_202_ACCEPTED,
+    )

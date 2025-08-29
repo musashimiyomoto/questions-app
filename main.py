@@ -2,8 +2,11 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.routers import questions, answers
+from api.routers import answers, questions
 from exceptions import BaseError
+from settings import setup_logging
+
+setup_logging()
 
 app = FastAPI(title="Questions App")
 

@@ -1,24 +1,20 @@
-from api.schemas.auth import LoginSchema, TokenSchema
-from api.schemas.question import (
-    QuestionCreateSchema,
-    QuestionResponseSchema,
-    QuestionUpdateSchema,
-)
 from api.schemas.answer import (
     AnswerCreateSchema,
     AnswerResponseSchema,
     AnswerUpdateSchema,
 )
-from api.schemas.user import UserCreateSchema, UserResponseSchema
+from api.schemas.question import (
+    QuestionCreateSchema,
+    QuestionResponseSchema,
+    QuestionUpdateSchema,
+    QuestionWithAnswersResponseSchema,
+)
 
 __all__ = [
-    "LoginSchema",
-    "TokenSchema",
-    "UserResponseSchema",
-    "UserCreateSchema",
     "QuestionCreateSchema",
     "QuestionResponseSchema",
     "QuestionUpdateSchema",
+    "QuestionWithAnswersResponseSchema",
     "AnswerCreateSchema",
     "AnswerResponseSchema",
     "AnswerUpdateSchema",

@@ -1,4 +1,4 @@
-from tests.factories.task import TaskFactory
-from tests.factories.user import UserFactory
+from tests.factories.answer import AnswerFactory
+from tests.factories.question import QuestionFactory
 
-__all__ = ["TaskFactory", "UserFactory"]
+__all__ = ["QuestionFactory", "AnswerFactory"]

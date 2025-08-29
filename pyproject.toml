@@ -11,12 +11,9 @@ python = "3.11.*"
 alembic = "1.14.1"
 fastapi = { extras = ["standard"], version = "0.115.7" }
 gunicorn = { extras = ["gevent"], version = "23.0.0" }
-redis = { extras = ["hiredis"], version = "6.1.0" }
 pydantic-settings = "2.5.2"
 sqlalchemy = "2.0.37"
 asyncpg = "0.28.0"
-python-jose = "3.4.0"
-passlib = "1.7.4"
 python-multipart = "0.0.20"
 
 [tool.poetry.group.dev]

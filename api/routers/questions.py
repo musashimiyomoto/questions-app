@@ -1,79 +1,70 @@
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Annotated
+
+from fastapi import APIRouter, Body, Depends, Path, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload
 
-from app.db.session import get_db
-from app.models.question import Question
-from app.schemas.question import QuestionCreate, QuestionResponse, QuestionListResponse
-from app.core.logging import get_logger
+from api.dependencies import db, question
+from api.schemas import (
+    QuestionCreateSchema,
+    QuestionResponseSchema,
+    QuestionWithAnswersResponseSchema,
+)
 
-logger = get_logger(__name__)
-router = APIRouter(prefix="/questions", tags=["questions"])
-
-
-@router.get("/", response_model=List[QuestionListResponse])
-async def get_questions(db: AsyncSession = Depends(get_db)):
-    logger.info("Fetching all questions")
-    result = await db.execute(select(Question).order_by(Question.created_at.desc()))
-    questions = result.scalars().all()
-    return questions
+router = APIRouter(tags=["Questions"])
 
 
-@router.post("/", response_model=QuestionResponse, status_code=status.HTTP_201_CREATED)
-async def create_question(
-    question: QuestionCreate, 
-    db: AsyncSession = Depends(get_db)
-):
-    logger.info(f"Creating new question: {question.text[:50]}...")
-    
-    db_question = Question(text=question.text)
-    db.add(db_question)
-    await db.commit()
-    await db.refresh(db_question)
-    
-    logger.info(f"Created question with ID: {db_question.id}")
-    return db_question
+@router.get(path="/questions/")
+async def get_all(
+    session: Annotated[AsyncSession, Depends(dependency=db.get_session)],
+    usecase: Annotated[
+        question.QuestionUsecase, Depends(dependency=question.get_question_usecase)
+    ],
+) -> list[QuestionResponseSchema]:
+    return [
+        QuestionResponseSchema.model_validate(question)
+        for question in await usecase.get_all(session=session)
+    ]
 
 
-@router.get("/{question_id}", response_model=QuestionResponse)
-async def get_question(question_id: int, db: AsyncSession = Depends(get_db)):
-    logger.info(f"Fetching question with ID: {question_id}")
-    
-    result = await db.execute(
-        select(Question)
-        .options(selectinload(Question.answers))
-        .where(Question.id == question_id)
+@router.post(path="/questions/")
+async def create(
+    data: Annotated[
+        QuestionCreateSchema, Body(description="Data for creating a question")
+    ],
+    session: Annotated[AsyncSession, Depends(dependency=db.get_session)],
+    usecase: Annotated[
+        question.QuestionUsecase, Depends(dependency=question.get_question_usecase)
+    ],
+) -> QuestionResponseSchema:
+    return QuestionResponseSchema.model_validate(
+        await usecase.create(session=session, text=data.text)
     )
-    question = result.scalar_one_or_none()
-    
-    if not question:
-        logger.warning(f"Question with ID {question_id} not found")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Question not found"
-        )
-    
-    return question
 
 
-@router.delete("/{question_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_question(question_id: int, db: AsyncSession = Depends(get_db)):
-    logger.info(f"Deleting question with ID: {question_id}")
-    
-    result = await db.execute(select(Question).where(Question.id == question_id))
-    question = result.scalar_one_or_none()
-    
-    if not question:
-        logger.warning(f"Question with ID {question_id} not found for deletion")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Question not found"
-        )
-    
-    await db.delete(question)
-    await db.commit()
-    
-    logger.info(f"Successfully deleted question with ID: {question_id}")
-    return None
+@router.get(path="/questions/{id}")
+async def get_with_answers(
+    id: Annotated[int, Path(description="Question ID")],
+    session: Annotated[AsyncSession, Depends(dependency=db.get_session)],
+    usecase: Annotated[
+        question.QuestionUsecase, Depends(dependency=question.get_question_usecase)
+    ],
+) -> QuestionWithAnswersResponseSchema:
+    return QuestionWithAnswersResponseSchema.model_validate(
+        await usecase.get_with_answers(session=session, id=id)
+    )
+
+
+@router.delete(path="/questions/{id}")
+async def delete_by_id(
+    id: Annotated[int, Path(description="Question ID")],
+    session: Annotated[AsyncSession, Depends(dependency=db.get_session)],
+    usecase: Annotated[
+        question.QuestionUsecase, Depends(dependency=question.get_question_usecase)
+    ],
+) -> JSONResponse:
+    await usecase.delete_by_id(session=session, id=id)
+    return JSONResponse(
+        content={"message": "Question and answers deleted successfully"},
+        status_code=status.HTTP_202_ACCEPTED,
+    )
