@@ -60,6 +60,15 @@ class TestGetQuestionWithAnswers(BaseTestCase):
         assert isinstance(data["answers"], list)
         assert "created_at" in data
 
+    @pytest.mark.asyncio
+    async def test_not_found(self) -> None:
+        non_existent_id = 999999
+
+        response = await self.client.get(url=self.url.format(id=non_existent_id))
+
+        data = await self.assert_response_not_found(response=response)
+        assert data["detail"] == "Question not found"
+
 
 class TestDeleteQuestion(BaseTestCase):
     url = "/questions/{id}"
@@ -73,3 +82,12 @@ class TestDeleteQuestion(BaseTestCase):
         response = await self.client.delete(url=self.url.format(id=question.id))
 
         await self.assert_response_no_content(response=response)
+
+    @pytest.mark.asyncio
+    async def test_not_found(self) -> None:
+        non_existent_id = 999999
+
+        response = await self.client.delete(url=self.url.format(id=non_existent_id))
+
+        data = await self.assert_response_not_found(response=response)
+        assert data["detail"] == "Question not found"

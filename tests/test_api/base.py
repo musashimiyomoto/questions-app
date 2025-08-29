@@ -21,3 +21,7 @@ class BaseTestCase:
             HTTPStatus.ACCEPTED,
             HTTPStatus.CREATED,
         ]
+
+    async def assert_response_not_found(self, response: Response) -> dict:
+        assert response.status_code == HTTPStatus.NOT_FOUND
+        return response.json()

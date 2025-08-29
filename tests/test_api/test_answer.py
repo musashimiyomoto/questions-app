@@ -31,6 +31,21 @@ class TestCreateAnswer(BaseTestCase):
         assert data["question_id"] == question.id
         assert "created_at" in data
 
+    @pytest.mark.asyncio
+    async def test_not_found(self) -> None:
+        non_existent_question_id = 999999
+        answer_data = {
+            "user_id": str(uuid.uuid4()),
+            "text": "Python is a programming language",
+        }
+
+        response = await self.client.post(
+            url=self.url.format(id=non_existent_question_id), json=answer_data
+        )
+
+        data = await self.assert_response_not_found(response=response)
+        assert data["detail"] == "Question not found"
+
 
 class TestGetAnswerById(BaseTestCase):
     url = "/answers/{id}"
@@ -57,6 +72,15 @@ class TestGetAnswerById(BaseTestCase):
         assert data["question_id"] == answer.question_id
         assert "created_at" in data
 
+    @pytest.mark.asyncio
+    async def test_not_found(self) -> None:
+        non_existent_id = 999999
+
+        response = await self.client.get(url=self.url.format(id=non_existent_id))
+
+        data = await self.assert_response_not_found(response=response)
+        assert data["detail"] == "Answer not found"
+
 
 class TestDeleteAnswer(BaseTestCase):
     url = "/answers/{id}"
@@ -77,3 +101,12 @@ class TestDeleteAnswer(BaseTestCase):
         response = await self.client.delete(url=self.url.format(id=answer.id))
 
         await self.assert_response_no_content(response=response)
+
+    @pytest.mark.asyncio
+    async def test_not_found(self) -> None:
+        non_existent_id = 999999
+
+        response = await self.client.delete(url=self.url.format(id=non_existent_id))
+
+        data = await self.assert_response_not_found(response=response)
+        assert data["detail"] == "Answer not found"
