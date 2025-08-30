@@ -35,7 +35,8 @@ pytest-asyncio = "*"
 pytest-cov = "*"
 factory-boy = "*"
 faker = "*"
-aiosqlite = "*"
+asyncpg = "*"
+testcontainers = { extras = ["postgresql"], version = "*" }
 
 [tool.black]
 line-length = 88
